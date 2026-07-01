@@ -33,7 +33,7 @@ func TestDockerContainer(t *testing.T) {
 	})
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	waitResult, err := dockerContainer.Run([]uint32{1, 2}, &stdout, &stderr)
+	waitResult, err := dockerContainer.Run(nil, &stdout, &stderr)
 	defer dockerContainer.Clear()
 	if err != nil {
 		t.Error(err)

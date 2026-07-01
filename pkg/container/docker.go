@@ -3,6 +3,7 @@ package container
 import (
 	"context"
 	"io"
+	"strconv"
 
 	"github.com/lingerwforwork/Lib/pkg/errors"
 	"github.com/moby/moby/api/pkg/stdcopy"
@@ -36,6 +37,11 @@ func (container *Container) Run(gpuIds []uint32, stdout, stderr io.Writer) (*cli
 		_, _ = io.WriteString(stderr, "Docker client not initialized")
 		return nil, errors.NilError
 	}
+	if container.hostConfig == nil {
+		container.hostConfig = &libContainer.HostConfig{}
+	}
+	applyGPUDeviceRequests(container.hostConfig, gpuIds)
+
 	ctx := context.Background()
 	container.config.AttachStdout = true
 	container.config.AttachStderr = true
@@ -90,4 +96,23 @@ func (container *Container) Terminate() error {
 
 func (container *Container) Clear() error {
 	return container.Terminate()
+}
+
+// applyGPUDeviceRequests 将 gpuIds 映射为 Docker nvidia DeviceRequests；gpuIds 为空时不挂载 GPU。
+func applyGPUDeviceRequests(hostConfig *libContainer.HostConfig, gpuIds []uint32) {
+	if len(gpuIds) == 0 {
+		return
+	}
+	deviceIDs := make([]string, len(gpuIds))
+	for i, id := range gpuIds {
+		deviceIDs[i] = strconv.FormatUint(uint64(id), 10)
+	}
+	hostConfig.Resources.DeviceRequests = []libContainer.DeviceRequest{
+		{
+			Driver:       "nvidia",
+			Count:        0,
+			DeviceIDs:    deviceIDs,
+			Capabilities: [][]string{{"gpu"}},
+		},
+	}
 }
