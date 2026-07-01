@@ -66,13 +66,14 @@ func (container *Container) Run(gpuIds []uint32, stdout, stderr io.Writer) (*cli
 		_, _ = io.WriteString(stderr, "failed to start container")
 		return nil, err
 	}
-	_, err = stdcopy.StdCopy(stdout, stderr, attachResp.Reader)
-	if err != nil {
-		_, _ = io.WriteString(stderr, "failed to attach container")
-		return nil, err
-	}
-	//4.等待容器结束
+	// ContainerWait 必须与 StdCopy 并发：若先阻塞读 attach 流再 Wait，attach 流可能永远等不到 EOF。
 	waitResult := container.cli.ContainerWait(ctx, createRes.ID, client.ContainerWaitOptions{})
+	go func() {
+		_, copyErr := stdcopy.StdCopy(stdout, stderr, attachResp.Reader)
+		if copyErr != nil && copyErr != io.EOF {
+			_, _ = io.WriteString(stderr, "failed to read container output")
+		}
+	}()
 	return &waitResult, nil
 }
 
