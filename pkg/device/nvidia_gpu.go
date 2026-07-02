@@ -6,20 +6,11 @@ import (
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
 )
 
-type NvidiaGpuClient interface {
-	GetCount() (int, error)
-	GetMemoryInfo(gpuId int) (*nvml.Memory, error)
-	GetTotalMemorySize() (uint64, error)
-	IsAllocatable(memoryMB uint64) error
-	NvmlInit() error
-	NvmlShutdown() error
-}
-
 type nvidiaGpuClient struct {
 	devices map[int]nvml.Device
 }
 
-func NewNvidiaGpuClient() NvidiaGpuClient {
+func NewNvidiaGpuClient() GpuClient {
 	return &nvidiaGpuClient{
 		devices: make(map[int]nvml.Device, 0),
 	}
@@ -93,7 +84,7 @@ func (c *nvidiaGpuClient) IsAllocatable(memoryMB uint64) error {
 	return nil
 }
 
-func (c *nvidiaGpuClient) NvmlInit() error {
+func (c *nvidiaGpuClient) Init() error {
 	ret := nvml.Init()
 	if ret != nvml.SUCCESS {
 		return fmt.Errorf("unable to initialize nvml: %v", nvml.ErrorString(ret))
@@ -101,7 +92,7 @@ func (c *nvidiaGpuClient) NvmlInit() error {
 	return nil
 }
 
-func (c *nvidiaGpuClient) NvmlShutdown() error {
+func (c *nvidiaGpuClient) Shutdown() error {
 	ret := nvml.Shutdown()
 	if ret != nvml.SUCCESS {
 		return fmt.Errorf("unable to shutdown nvml: %v", nvml.ErrorString(ret))
